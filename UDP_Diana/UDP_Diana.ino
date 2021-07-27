@@ -12,20 +12,30 @@
 #include "PinChangeInterrupt.h"
 
 
+
+///////////////////////////////////////////////////
+// MODULE NUMBER (becomes the last part of the IP)
+
+#define NUMBER   103
+
+
+
+
 ///////////////////////////////////////////////////
 // PWM
 
 const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle output will be written
 
 #define INIT_PWM 350
-#define TIMEOUT_SEC  10.0
+#define TIMEOUT_SEC  10.0   // seconds of no ethernet data => turn off
+
 
 
 
 ///////////////////////////////////////////////////
 // RPM
 
-const int PIN_SENSE [9] = {14,15,62,63,64,65,66,67,68};  //A8 where we connected the fan sense pin 
+const int PIN_SENSE [9] = {51,52,62,63,64,65,66,67,68};  //A8 where we connected the fan sense pin 
 
 unsigned long volatile rpm_dt0 = 0;
 unsigned long volatile rpm_dt1 = 0;
@@ -39,63 +49,63 @@ unsigned long volatile rpm_dt8 = 0;
 
 void tachISR0() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt0 = m - ts;
   ts=m;
 }
 
 void tachISR1() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt1 = m - ts;
   ts=m;
 }
 
 void tachISR2() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt2 = m - ts;
   ts=m;
 }
 
 void tachISR3() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt3 = m - ts;
   ts=m;
 }
 
 void tachISR4() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt4 = m - ts;
   ts=m;
 }
 
 void tachISR5() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt5 = m - ts;
   ts=m;
 }
 
 void tachISR6() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt6 = m - ts;
   ts=m;
 }
 
 void tachISR7() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt7 = m - ts;
   ts=m;
 }
 
 void tachISR8() {
   static unsigned long volatile ts=0;
-  unsigned long m=millis();
+  unsigned long m=micros();
   rpm_dt8 = m - ts;
   ts=m;
 }
@@ -115,8 +125,6 @@ struct FanData
 
 ///////////////////////////////////////////////////
 // ETHERNET
-#define NUMBER   103
-
 byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, NUMBER}; //4
 
 EthernetClient client;
@@ -177,6 +185,11 @@ void set_fans(uint16_t fans[9]) {
   }
 }
 
+void set_fans_safe(void) {
+  uint16_t fans[9] = { INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM };
+  set_fans(fans);  
+}
+
 void setup() 
 {
    // Startup serial
@@ -199,9 +212,7 @@ void setup()
     Timer5.pwm(OutputPin[k], INIT_PWM);
   }
 
-  uint16_t fans[9] = { INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM };
-  set_fans(fans);
-
+  set_fans_safe();
 
 
   // RPM
@@ -253,13 +264,12 @@ unsigned long g_lastUdpComTime = 0;
 
 void loop() 
 {
-    unsigned long g_timeNow = micros();
+    unsigned long g_timeNow = millis();
 
     // if timeout:
-    if (g_timeNow-g_lastUdpComTime >= (TIMEOUT_SEC*1000000.0))
+    if (g_timeNow-g_lastUdpComTime >= (TIMEOUT_SEC*1000.0))
     {
-      uint16_t fans_off[9] = {0,0,0,0,0,0,0,0,0};
-      set_fans(fans_off);
+      set_fans_safe();
       g_lastUdpComTime = g_timeNow;
     }
 
@@ -278,12 +288,10 @@ void loop()
         Serial.println(hbt->fan[0]);
 #endif
         set_fans(hbt->fan);
-    
-        sendFanData(hbt->fan[0]);
-    }
 
-    //Serial.print("RPM ");
-    //Serial.println(rpm_dt1);
+        // Send the status of the last received message
+        sendFanData(hbt->status);
+    }
 }
 
 void sendFanData(uint16_t _stat)
