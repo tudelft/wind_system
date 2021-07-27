@@ -79,6 +79,20 @@ bool checkForPacket(byte* rcvBuf, int maxBufLen, int* packetSize, EthernetUDP ha
     return foundPacket;
 }
 
+
+void set_fans(uint16_t fans[9]) {
+
+  for (int i = 0; i <= 2; i++) {
+    Timer3.setPwmDuty(OutputPin[i], fans[i]);
+  }
+  for (int j = 3; j <= 5; j++) {
+    Timer4.setPwmDuty(OutputPin[j], fans[j]);
+  }
+  for (int k = 6; k <= 8; k++) {
+     Timer5.setPwmDuty(OutputPin[k], fans[k]);
+  }
+}
+
 void setup() 
 {
    // Startup serial
@@ -101,6 +115,8 @@ void setup()
     Timer5.pwm(OutputPin[k], INIT_PWM);
   }
 
+  uint16_t fans[9] = { 0, 400, 0, 400, 0, 400, 0, 800, 0};
+  set_fans(fans);
 
 
   // Ethernet
@@ -140,18 +156,6 @@ void loop()
         receiveFanData();
     //    g_lastUdpComTime = g_timeNow;
     //}
-
-  uint16_t val = 400;
-
-  for (int i = 0; i <= 2; i++) {
-    Timer3.setPwmDuty(OutputPin[i], val);
-  }
-  for (int j = 3; j <= 5; j++) {
-    Timer4.setPwmDuty(OutputPin[j], val);
-  }
-  for (int k = 6; k <= 8; k++) {
-     Timer5.setPwmDuty(OutputPin[k], val);
-  }
 }
 
 void receiveFanData()
@@ -161,10 +165,13 @@ void receiveFanData()
     if(foundPacket)
     {
         FanData* hbt = (FanData*)&g_rcvBuffer;
+
+        
         Serial.print("FanData! Status: ");
         Serial.print(hbt->status);
         Serial.print(", random value ");
         Serial.println(hbt->fan[0]);
+        set_fans(hbt->fan);
     
         sendFanData(hbt->status, hbt->fan[0]);
     }
@@ -172,8 +179,6 @@ void receiveFanData()
 
 void sendFanData(int count, int val)
 {
-    Serial.print("Send ");
-    Serial.println( count);
     // Create a packet
     FanData hbt;
     hbt.status = count;
