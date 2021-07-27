@@ -26,7 +26,7 @@
 
 const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle output will be written
 
-#define INIT_PWM 350
+#define INIT_PWM 0
 #define TIMEOUT_SEC  10.0   // seconds of no ethernet data => turn off
 
 
