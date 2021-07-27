@@ -8,13 +8,98 @@
 #include <TimerFour.h>  //6,7,8
 #include <TimerFive.h> //44, 45, 46
 
+// RPM In
+#include "PinChangeInterrupt.h"
+
+
 ///////////////////////////////////////////////////
 // PWM
 
 const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle output will be written
 
-#define INIT_PWM 0
+#define INIT_PWM 350
 #define TIMEOUT_SEC  10.0
+
+
+
+///////////////////////////////////////////////////
+// RPM
+
+const int PIN_SENSE [9] = {14,15,62,63,64,65,66,67,68};  //A8 where we connected the fan sense pin 
+
+unsigned long volatile rpm_dt0 = 0;
+unsigned long volatile rpm_dt1 = 0;
+unsigned long volatile rpm_dt2 = 0;
+unsigned long volatile rpm_dt3 = 0;
+unsigned long volatile rpm_dt4 = 0;
+unsigned long volatile rpm_dt5 = 0;
+unsigned long volatile rpm_dt6 = 0;
+unsigned long volatile rpm_dt7 = 0;
+unsigned long volatile rpm_dt8 = 0;
+
+void tachISR0() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt0 = m - ts;
+  ts=m;
+}
+
+void tachISR1() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt1 = m - ts;
+  ts=m;
+}
+
+void tachISR2() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt2 = m - ts;
+  ts=m;
+}
+
+void tachISR3() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt3 = m - ts;
+  ts=m;
+}
+
+void tachISR4() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt4 = m - ts;
+  ts=m;
+}
+
+void tachISR5() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt5 = m - ts;
+  ts=m;
+}
+
+void tachISR6() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt6 = m - ts;
+  ts=m;
+}
+
+void tachISR7() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt7 = m - ts;
+  ts=m;
+}
+
+void tachISR8() {
+  static unsigned long volatile ts=0;
+  unsigned long m=millis();
+  rpm_dt8 = m - ts;
+  ts=m;
+}
+
 
 
 ///////////////////////////////////////////////////
@@ -114,8 +199,24 @@ void setup()
     Timer5.pwm(OutputPin[k], INIT_PWM);
   }
 
-  uint16_t fans[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  uint16_t fans[9] = { INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM,INIT_PWM };
   set_fans(fans);
+
+
+
+  // RPM
+  for (int h = 0; h <= 8; h++) {
+    pinMode(PIN_SENSE[h],INPUT_PULLUP); //set the sense pin as input with pullup resistor
+  }
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[0]),tachISR0,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[1]),tachISR1,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[2]),tachISR2,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[3]),tachISR3,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[4]),tachISR4,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[5]),tachISR5,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[6]),tachISR6,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[7]),tachISR7,FALLING);
+  attachPCINT(digitalPinToPCINT(PIN_SENSE[8]),tachISR8,FALLING);
 
 
   // Ethernet
@@ -178,18 +279,27 @@ void loop()
 #endif
         set_fans(hbt->fan);
     
-        sendFanData(hbt->status, hbt->fan[0]);
+        sendFanData(hbt->fan[0]);
     }
+
+    //Serial.print("RPM ");
+    //Serial.println(rpm_dt1);
 }
 
-void sendFanData(int count, int val)
+void sendFanData(uint16_t _stat)
 {
     // Create a packet
     FanData hbt;
-    hbt.status = count;
-    for (int i=0;i<9;i++) {
-      hbt.fan[i] = val;
-    }
+    hbt.status = _stat;
+    hbt.fan[0] = rpm_dt0;
+    hbt.fan[1] = rpm_dt1;
+    hbt.fan[2] = rpm_dt2;
+    hbt.fan[3] = rpm_dt3;
+    hbt.fan[4] = rpm_dt4;
+    hbt.fan[5] = rpm_dt5;
+    hbt.fan[6] = rpm_dt6;
+    hbt.fan[7] = rpm_dt7;
+    hbt.fan[8] = rpm_dt8;
 
     // Send the data
     txPacket((byte*)&hbt, sizeof(FanData), g_targetIp, g_targetPort, g_handle);
