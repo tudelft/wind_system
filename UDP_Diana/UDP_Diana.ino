@@ -288,20 +288,29 @@ void loop()
     }
 }
 
+
+inline uint16_t rpm(unsigned long volatile r) {
+  unsigned long r2 = r/2;
+  if (r2 > 65535) {
+    r2 = 65535;
+  }
+  return r2;
+}
+
 void sendFanData(uint16_t _stat)
 {
     // Create a packet
     FanData hbt;
     hbt.status = _stat;
-    hbt.fan[0] = rpm_dt0;
-    hbt.fan[1] = rpm_dt1;
-    hbt.fan[2] = rpm_dt2;
-    hbt.fan[3] = rpm_dt3;
-    hbt.fan[4] = rpm_dt4;
-    hbt.fan[5] = rpm_dt5;
-    hbt.fan[6] = rpm_dt6;
-    hbt.fan[7] = rpm_dt7;
-    hbt.fan[8] = rpm_dt8;
+    hbt.fan[0] = rpm(rpm_dt0);
+    hbt.fan[1] = rpm(rpm_dt1);
+    hbt.fan[2] = rpm(rpm_dt2);
+    hbt.fan[3] = rpm(rpm_dt3);
+    hbt.fan[4] = rpm(rpm_dt4);
+    hbt.fan[5] = rpm(rpm_dt5);
+    hbt.fan[6] = rpm(rpm_dt6);
+    hbt.fan[7] = rpm(rpm_dt7);
+    hbt.fan[8] = rpm(rpm_dt8);
 
     // Send the data
     txPacket((byte*)&hbt, sizeof(FanData), g_targetIp, g_targetPort, g_handle);
