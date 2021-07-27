@@ -40,6 +40,8 @@ ROWS = 9
 COLS = 15
 
 
+# TODO: modulate the wall
+
 fans = [ [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
@@ -77,16 +79,15 @@ def loop(port):
     while True:
         
         if time.time() > timetick:
-            timetick += 2
+            timetick += 2.0 # in seconds: e.g. 0.05 = 20Hz
             
             val = random.randint(0,100)
             data = [count, 400, 0, 400, 0, 1000, 0, 400 , 0, 400]
-            
             data = [count, 400, 0, 400, 0, 1000, 0, 400 , 0, 400]
             data = [count, 400, 0, 0, 0, 0, 0, 0 , 0, 0]
             data = [count, 400, 400, 400, 400, 400, 400, 400 , 400, 400]
             #data = [count, 800, 800, 800, 800, 800, 800, 800 , 800, 800]
-            #data = [count, val, 2,3,4,5,6,7,8,9]
+
             
             # Send to all modules
             i = 0
@@ -98,10 +99,8 @@ def loop(port):
 
         #time.sleep(1)
 
-        
-        gotdata = getfans(sock)
-        gotdata = getfans(sock)
-        gotdata = getfans(sock)
+        for ip in fan_ip:
+            gotdata = getfans(sock)
         
         
         

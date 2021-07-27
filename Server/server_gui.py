@@ -2,11 +2,18 @@ import random
 import socket
 import struct
 import time
+from tkinter import *
+#sudo apt-get install python-tk
+
+
+# global variable
+fan_value = 0
+
 
 DEBUG = True
-FANDATA_FMT = "hhhhhhhhhh"
+FANDATA_FMT = "HHHHHHHHHH"
 
-fan_ip = [ '192.168.1.103', '192.168.1.104', '192.168.1.105']
+fan_ip = [ '192.168.1.102', '192.168.1.103', '192.168.1.104', '192.168.1.105']
 
 def setfans(sock, number, data):
     # Target
@@ -26,84 +33,86 @@ def setfans(sock, number, data):
             print('Failed to send to',target_ip, e)
 
 
+def rpm(val):
+    if val <= 0:
+        return 0
+    return round(15000000 / val,1)
+
+
 def getfans(sock):
     try:
         rcv_data, addr = sock.recvfrom(20)
         status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9 = struct.unpack(FANDATA_FMT, rcv_data)
         if DEBUG:
-            print('I received', status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9,"from", addr)
+            print('I received', status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9),"from", addr)
         return True
     except Exception as e:
         return False
 
-ROWS = 9
-COLS = 15
 
-
-fans = [ [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-         ]
-
-def fan_init( val ):
-    global fans
-    for x in range(0,COLS):
-        for y in range(0,ROWS):
-            fans[y][x] = val
-            
-fan_init(10)
-
-def fan_print(fans):
-    for r in fans:
-        print(r)
- 
-
-fan_print(fans)
-
-def loop(port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setblocking(False)
-    sock.bind(('', port))
+###################################
+## ETHERNET
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.setblocking(False)
+sock.bind(('', 8000))
    
-    count = 0
+
     
-    timetick = time.time() + 1
-    while True:
+def FANWALL_Send():
+    global sock, fan_value
+            
+    data = [fan_value, fan_value, fan_value, fan_value, fan_value, fan_value, fan_value, fan_value, fan_value, fan_value]
+            
+    # Send to all modules
+    i = 0
+    for ip in fan_ip:
+        setfans(sock, i, data)
+        i+=1
         
-        if time.time() > timetick:
-            timetick += 2
-            
-            val = random.randint(0,100)
-            data = [count, 400, 0, 400, 0, 1000, 0, 400 , 0, 400]
-            
-            data = [count, 400, 0, 400, 0, 1000, 0, 400 , 0, 400]
-            data = [count, 400, 0, 0, 0, 0, 0, 0 , 0, 0]
-            data = [count, 400, 400, 400, 400, 400, 400, 400 , 400, 400]
-            #data = [count, 800, 800, 800, 800, 800, 800, 800 , 800, 800]
-            #data = [count, val, 2,3,4,5,6,7,8,9]
-            
-            # Send to all modules
-            i = 0
-            for ip in fan_ip:
-                setfans(sock, i, data)
-                i+=1
-            
-            count += 1
+def FANWALL_Send_Thread():
+    FANWALL_Send()
+    root.after(250, FANWALL_Send_Thread)
+    
+    
 
-        #time.sleep(1)
+def FANWALL_Read_Thread():
+    gotdata = getfans(sock)
+    root.after(1, FANWALL_Read_Thread)
+
 
         
-        gotdata = getfans(sock)
-        gotdata = getfans(sock)
-        gotdata = getfans(sock)
-        
-        
+def throttle(var):
+    global fan_value
+    fan_value = int(var)
+    FANWALL_Send()
+
+
+status = 0
+def toggle():
+    global status
+    if status == 0:
+        throttle(1023)
+        status = 1
+    else:
+        throttle(400)
+        status = 0
+    
+    root.after(1000, toggle)
+
+
+root = Tk()
+root.title("FAN WALL")
+root.geometry("400x400")
+
+vertical = Scale(root, from_=0, to=1023, command=throttle)
+vertical.pack()
+
+root.after(0, FANWALL_Send_Thread)
+root.after(0, FANWALL_Read_Thread)
+#root.after(0, toggle)
+
+root.mainloop()
+
         
 loop(8000)
 
