@@ -16,7 +16,7 @@
 ///////////////////////////////////////////////////
 // MODULE NUMBER (becomes the last part of the IP)
 
-#define NUMBER   103
+#define NUMBER   102
 
 
 
@@ -248,12 +248,6 @@ void setup()
   delay(5000);
   g_handle.begin(g_myPort);
     
-  Serial.print("My IP address: ");
-  for (byte thisByte = 0; thisByte < 4; thisByte++) {
-    // print the value of each byte of the IP address:
-    Serial.print(Ethernet.localIP()[thisByte], DEC);
-    Serial.print("."); 
-  }  
 
 }
 
