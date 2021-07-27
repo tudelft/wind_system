@@ -1,41 +1,53 @@
+// Ethernet
 #include <SPI.h>
 #include <Ethernet2.h>
 #include <EthernetUdp2.h>
 
-#define MAX_RCV_BUF 256
-#define UDP_COM_RATE 0.5 //Hz
+// PWM Out
+#include <TimerThree.h>  // 2,3,5 
+#include <TimerFour.h>  //6,7,8
+#include <TimerFive.h> //44, 45, 46
+
+///////////////////////////////////////////////////
+// PWM
+
+const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle output will be written
+
+#define INIT_PWM 0
+
+
+///////////////////////////////////////////////////
+// PROTOCOL
 
 struct FanData
 {
   uint16_t status;  // 2byte == short on windows
   uint16_t fan[9]; 
-};  // total length == 4 bytes
+};  // total length == 20 bytes
 
-#if defined(WIZ550io_WITH_MACADDRESS) // Use assigned MAC address of WIZ550io;
-#else
 
+
+///////////////////////////////////////////////////
+// ETHERNET
 #define NUMBER   103
 
-//byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, 0x1C}; // 2
-//byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, 0x1D}; //3
 byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, NUMBER}; //4
-//byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, 0x1A}; //5
-#endif
-EthernetClient client;
 
-//IPAddress g_myIp(192, 168, 1, 102); //2
-//IPAddress g_myIp(192, 168, 1, 103);  //3
+EthernetClient client;
+EthernetUDP g_handle;
+
 IPAddress g_myIp(192, 168, 1, NUMBER);  //4
-//IPAddress g_myIp(192, 168, 1, 105);  //5
 unsigned int g_myPort = 8888;
 
 IPAddress g_targetIp(192, 168, 1, 1);
 unsigned int g_targetPort = 8000;
 
-EthernetUDP g_handle;
-
+#define MAX_RCV_BUF 256
 byte g_rcvBuffer[MAX_RCV_BUF];
 
+
+
+// todo
 unsigned long g_timeNow = 0;
 unsigned long g_lastUdpComTime = 0;
 
@@ -70,9 +82,29 @@ bool checkForPacket(byte* rcvBuf, int maxBufLen, int* packetSize, EthernetUDP ha
 void setup() 
 {
    // Startup serial
-  Serial.begin(9600);
+  Serial.begin(57600);             
+  Serial.flush();
+  Serial.print("DIANA FAN SYSTEM");  
+
+
+  // PWM Init
+  Timer3.initialize(40);  //40 us = 25 kHz ..36-46
+  Timer4.initialize(40);  
+  Timer5.initialize(40);
+  for (int i = 0; i <= 2; i++) {
+    Timer3.pwm(OutputPin[i], INIT_PWM);
+  }
+  for (int j = 3; j <= 5; j++) {
+    Timer4.pwm(OutputPin[j], INIT_PWM);
+  }
+  for (int k = 6; k <= 8; k++) {
+    Timer5.pwm(OutputPin[k], INIT_PWM);
+  }
+
+
+
+  // Ethernet
   Ethernet.init(10); // SS pin changed from default pin 10 to 53
-  
   // start the Ethernet connection:
   Ethernet.begin(g_mac,g_myIp);
   // print your local IP address:
@@ -85,18 +117,16 @@ void setup()
   Serial.println();
 
 
-    // Print out begining
-    Serial.println("Starting up...");
-    delay(5000);
-    g_handle.begin(g_myPort);
-    // print your local IP address:
+  // Print out begining
+  delay(5000);
+  g_handle.begin(g_myPort);
     
-    Serial.print("My IP address: ");
-    for (byte thisByte = 0; thisByte < 4; thisByte++) {
+  Serial.print("My IP address: ");
+  for (byte thisByte = 0; thisByte < 4; thisByte++) {
     // print the value of each byte of the IP address:
     Serial.print(Ethernet.localIP()[thisByte], DEC);
     Serial.print("."); 
-    }
+  }  
 
 }
 
@@ -109,7 +139,19 @@ void loop()
     //    Serial.println("Handle Coms v2");
         receiveFanData();
     //    g_lastUdpComTime = g_timeNow;
-    //}  
+    //}
+
+  uint16_t val = 400;
+
+  for (int i = 0; i <= 2; i++) {
+    Timer3.setPwmDuty(OutputPin[i], val);
+  }
+  for (int j = 3; j <= 5; j++) {
+    Timer4.setPwmDuty(OutputPin[j], val);
+  }
+  for (int k = 6; k <= 8; k++) {
+     Timer5.setPwmDuty(OutputPin[k], val);
+  }
 }
 
 void receiveFanData()
