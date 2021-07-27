@@ -14,6 +14,7 @@
 const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle output will be written
 
 #define INIT_PWM 0
+#define TIMEOUT_SEC  10.0
 
 
 ///////////////////////////////////////////////////
@@ -45,11 +46,6 @@ unsigned int g_targetPort = 8000;
 #define MAX_RCV_BUF 256
 byte g_rcvBuffer[MAX_RCV_BUF];
 
-
-
-// todo
-unsigned long g_timeNow = 0;
-unsigned long g_lastUdpComTime = 0;
 
 void txPacket(byte* txBuffer, int dataLen, IPAddress remoteIpNum, unsigned int remotePortNum, EthernetUDP handle)
 {
@@ -83,12 +79,15 @@ bool checkForPacket(byte* rcvBuf, int maxBufLen, int* packetSize, EthernetUDP ha
 void set_fans(uint16_t fans[9]) {
 
   for (int i = 0; i <= 2; i++) {
+    if (fans[i] > 1023) fans[i] = 1023;
     Timer3.setPwmDuty(OutputPin[i], fans[i]);
   }
   for (int j = 3; j <= 5; j++) {
+    if (fans[j] > 1023) fans[j] = 1023;
     Timer4.setPwmDuty(OutputPin[j], fans[j]);
   }
   for (int k = 6; k <= 8; k++) {
+    if (fans[k] > 1023) fans[k] = 1023;
      Timer5.setPwmDuty(OutputPin[k], fans[k]);
   }
 }
@@ -115,7 +114,7 @@ void setup()
     Timer5.pwm(OutputPin[k], INIT_PWM);
   }
 
-  uint16_t fans[9] = { 0, 400, 0, 400, 0, 400, 0, 800, 0};
+  uint16_t fans[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0};
   set_fans(fans);
 
 
@@ -146,31 +145,37 @@ void setup()
 
 }
 
+
+
+
+unsigned long g_lastUdpComTime = 0;
+
 void loop() 
 {
-    // Only handle coms every second
-    //g_timeNow = micros();
-    //if(g_timeNow-g_lastUdpComTime >= (1.0/UDP_COM_RATE)*1000000.0)
-    //{
-    //    Serial.println("Handle Coms v2");
-        receiveFanData();
-    //    g_lastUdpComTime = g_timeNow;
-    //}
-}
+    unsigned long g_timeNow = micros();
 
-void receiveFanData()
-{
+    // if timeout:
+    if (g_timeNow-g_lastUdpComTime >= (TIMEOUT_SEC*1000000.0))
+    {
+      uint16_t fans_off[9] = {0,0,0,0,0,0,0,0,0};
+      set_fans(fans_off);
+      g_lastUdpComTime = g_timeNow;
+    }
+
     int packetSize;
     bool foundPacket = checkForPacket((byte*)&g_rcvBuffer, MAX_RCV_BUF, &packetSize,  g_handle);
     if(foundPacket)
     {
-        FanData* hbt = (FanData*)&g_rcvBuffer;
-
+        // Update the timeout timer
+        g_lastUdpComTime = g_timeNow;
         
+        FanData* hbt = (FanData*)&g_rcvBuffer;
+#ifdef DEBUG        
         Serial.print("FanData! Status: ");
         Serial.print(hbt->status);
         Serial.print(", random value ");
         Serial.println(hbt->fan[0]);
+#endif
         set_fans(hbt->fan);
     
         sendFanData(hbt->status, hbt->fan[0]);
