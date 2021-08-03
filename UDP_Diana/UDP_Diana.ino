@@ -16,7 +16,7 @@
 ///////////////////////////////////////////////////
 // MODULE NUMBER (becomes the last part of the IP)
 
-#define NUMBER   102
+#define NUMBER   115
 
 
 
@@ -35,7 +35,7 @@ const int OutputPin[9] = {2,3,5,6,7,8,44,45,46}; // Pin at which duty cycle outp
 ///////////////////////////////////////////////////
 // RPM
 
-const int PIN_SENSE [9] = {13,69,62,63,64,65,66,67,68};  //A8 where we connected the fan sense pin 
+const int PIN_SENSE [9] = {13,62,63,64,65,66,67,68,69};  //A8 where we connected the fan sense pin 
 
 unsigned long volatile rpm_dt0 = 0;
 unsigned long volatile rpm_dt1 = 0;
