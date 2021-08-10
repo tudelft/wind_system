@@ -2,6 +2,7 @@ import random
 import socket
 import struct
 import time
+import numpy as np
 from tkinter import *
 #sudo apt-get install python-tk
 
@@ -9,6 +10,8 @@ from tkinter import *
 # global variable
 fan_value = 0
 
+pwmValues = " ";
+rpmValues = " ";
 
 DEBUG = True
 FANDATA_FMT = "HHHHHHHHHH"
@@ -23,7 +26,7 @@ def setfans(sock, number, data):
 
     # Data
     if DEBUG:
-        print('Fans ', number, ' -> ' ,target_ip, ': ', data)
+        printPWM(number, target_ip, data)
     
     # Sending
     try:
@@ -45,11 +48,40 @@ def getfans(sock):
         rcv_data, addr = sock.recvfrom(20)
         status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9 = struct.unpack(FANDATA_FMT, rcv_data)
         if DEBUG:
-            print('I received', status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9),"from", addr)
+            printRPM(status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9),"from", addr)
         return True
     except Exception as e:
         return False
 
+
+#def printRpm(rpm1, rpm2, rpm3,rpm4,rpm5,rpm6,rpm7,rpm8,rpm9,addr):
+#    rpmValues = rpmvalues.join('I received', status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9),"from", addr,"/n") 
+
+def printPWM(number, target_ip, data):
+    global pwmValues
+    pwmValues = pwmValues +  'PWM Module ' + str(number) + ' -> '
+    for ip in target_ip:
+        pwmValues += str(ip)
+    
+    pwmValues = pwmValues + ': '
+    for d in data:
+        pwmValues += str(d) + " "
+    pwmValues = pwmValues + "\n"
+    print('Fans', number, ' -> ' ,target_ip, ': ', data)
+    save(pwmValues)
+
+def printRPM(status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9, addr):
+    global rpmValues
+    rpmValues = rpmValues +  'RPM' + str(status) + ' -> '
+    for r in rpm:
+        rpmValues += str(r)
+    
+    rpmValues = rpmValues + "\n"
+    for a in addr:
+        rpmValues += str(a)
+    
+    print(status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9,"from", addr)
+    save(rpmValues)
 
 ###################################
 ## ETHERNET
@@ -99,6 +131,15 @@ def toggle():
         status = 0
     
     root.after(1000, toggle)
+    
+def save(Values):
+    header = "FAN DATA\n"
+    header += "PWM x15,  TACHO x15"
+    with open('FAN_data.dat', 'w') as f: #w-writing mode, b- binary mode
+            f.write(" FAN DATA \n PWM x15,  TACHO x15 \n")
+            f.write(Values)
+            f.flush()
+    
 
 
 root = Tk()
@@ -106,12 +147,11 @@ root.title("FAN WALL")
 root.geometry("400x400")
 
 vertical = Scale(root, from_=0, to=1023, command=throttle)
-vertical.pack()
 
+vertical.pack()
 root.after(0, FANWALL_Send_Thread)
 root.after(0, FANWALL_Read_Thread)
 #root.after(0, toggle)
-
 root.mainloop()
 
         
