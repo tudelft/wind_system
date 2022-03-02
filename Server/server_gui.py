@@ -48,7 +48,7 @@ def getfans(sock):
         rcv_data, addr = sock.recvfrom(20)
         status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9 = struct.unpack(FANDATA_FMT, rcv_data)
         if DEBUG:
-            printRPM(status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9),"from", addr)
+            printRPM(status, rpm(rpm1), rpm(rpm2), rpm(rpm3), rpm(rpm4), rpm(rpm5), rpm(rpm6), rpm(rpm7), rpm(rpm8), rpm(rpm9), addr)
         return True
     except Exception as e:
         return False
@@ -67,22 +67,25 @@ def printPWM(number, target_ip, data):
     for d in data:
         pwmValues += str(d) + " "
     pwmValues = pwmValues + "\n"
-    print('Fans', number, ' -> ' ,target_ip, ': ', data)
-    save(pwmValues)
+    print('Fans!', number, ' -> ' ,target_ip, ': ', data)
+    savePWM(pwmValues)
 
 def printRPM(status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9, addr):
     global rpmValues
-    rpmValues = rpmValues +  'RPM' + str(status) + ' -> '
-    for r in rpm:
-        rpmValues += str(r)
-    
-    rpmValues = rpmValues + "\n"
-    for a in addr:
-        rpmValues += str(a)
-    
-    print(status, rpm1, rpm2, rpm3, rpm4, rpm5, rpm6, rpm7, rpm8, rpm9,"from", addr)
-    save(rpmValues)
-
+    rpmValues += str(status) + ", " \
+                + str((rpm1)) + ", "\
+                + str((rpm2)) + ", "\
+                + str((rpm3)) + ", "\
+                + str((rpm4)) + ", "\
+                + str((rpm5)) + ", "\
+                + str((rpm6)) + ", "\
+                + str((rpm7)) + ", "\
+                + str((rpm7)) + ", "\
+                + str((rpm8)) + ", "\
+                + str((rpm9)) + ", "\
+                + str(addr) + "\n"
+    saveRPM(rpmValues)
+  
 ###################################
 ## ETHERNET
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -125,22 +128,62 @@ def toggle():
     global status
     if status == 0:
         throttle(1023)
-        status = 1
+        status = 1 
     else:
         throttle(400)
         status = 0
     
-    root.after(1000, toggle)
-    
-def save(Values):
-    header = "FAN DATA\n"
-    header += "PWM x15,  TACHO x15"
-    with open('FAN_data.dat', 'w') as f: #w-writing mode, b- binary mode
-            f.write(" FAN DATA \n PWM x15,  TACHO x15 \n")
-            f.write(Values)
-            f.flush()
-    
+    root.after(2000, toggle)
 
+def step():
+    global status
+    if status == 0:
+        throttle(1023)
+        status = 1
+    else:
+        throttle(0)
+        status = 0
+    
+    root.after(20000, step)
+
+def continous():
+    throttle(300)
+    root.after(20000,continous)
+
+# wait for certain number of seconds before changing PWM
+WAIT_GAP = 10 
+def step_increase():
+	start_time = timer()
+    current_time = timer()
+    while True:
+        elapsed_time = current_time - start_time
+        if elapsed_time <= WAIT_GAP:
+            throttle(200)
+            current_time = timer()
+        elif WAIT_GAP < elapsed_time <= 2 * WAIT_GAP:
+            throttle(250)
+            current_time = timer()
+        elif 2 * WAIT_GAP < elapsed_time <= 3 * WAIT_GAP:
+            throttle(300)
+            current_time = timer()
+        elif 3 * WAIT_GAP < elapsed_time <= 4 * WAIT_GAP:
+            throttle(350)
+            current_time = timer()
+        else:
+            throttle(350)
+            break
+    
+def savePWM(Values):     
+    with open('PWM_data.dat', 'w') as f: #w-writing mode, b- binary mode
+        f.write(" FAN DATA \n PWM x15\n")
+        f.write(Values)
+        f.flush()
+    
+def saveRPM(Values):
+    with open('RPM_data.dat', 'w') as f: #w-writing mode, b- binary mode
+        f.write(" FAN DATA \n TACHO x15 \n") 
+        f.write(Values) 
+        f.flush()
 
 root = Tk()
 root.title("FAN WALL")
@@ -152,6 +195,10 @@ vertical.pack()
 root.after(0, FANWALL_Send_Thread)
 root.after(0, FANWALL_Read_Thread)
 #root.after(0, toggle)
+#root.after(0, step)
+#root.after(0, continous)
+root.after(0,step_increase)
+
 root.mainloop()
 
         
