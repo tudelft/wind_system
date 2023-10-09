@@ -146,9 +146,9 @@ def step():
     
     root.after(20000, step)
 
-def continous():
+def continuous():
     throttle(300)
-    root.after(20000,continous)
+    root.after(20000,continuous)
 
 # wait for certain number of seconds before changing PWM
 WAIT_GAP = 10 
@@ -196,7 +196,7 @@ root.after(0, FANWALL_Send_Thread)
 root.after(0, FANWALL_Read_Thread)
 #root.after(0, toggle)
 #root.after(0, step)
-#root.after(0, continous)
+#root.after(0, continuous)
 root.after(0,step_increase)
 
 root.mainloop()
