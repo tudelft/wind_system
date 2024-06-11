@@ -125,13 +125,13 @@ struct FanData
 
 ///////////////////////////////////////////////////
 // ETHERNET
-byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, NUMBER}; //4
+byte g_mac[] = { 0x20, 0xA2, 0xDA, 0x10, 0x3A, NUMBER}; // Unique MAC address
 
 EthernetClient client;
 EthernetUDP g_handle;
 
-IPAddress g_myIp(192, 168, 1, NUMBER);  //4
-unsigned int g_myPort = 8888;
+IPAddress g_myIp(192, 168, 1, NUMBER);  // Set static IP address for Arduino
+unsigned int g_myPort = 8888; // Local port
 
 IPAddress g_targetIp(192, 168, 1, 1);
 unsigned int g_targetPort = 8000;
